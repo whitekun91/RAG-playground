@@ -1,0 +1,13 @@
+python -m vllm.entrypoints.openai.api_server \
+    --model "../../models/LM_Models/gemma-3-12b-it_250724" \
+    --served-model-name "gemma-3-12b-it" \
+    --tokenizer "../../models/LM_Models/gemma-3-12b-it_250724" \
+    --dtype bfloat16 \
+    --max-model-len 8192 \
+    --chat-template-content-format auto \
+    --gpu-memory-utilization 0.65 \
+    --tensor-parallel-size 2 \
+    --max-num-seqs 16 \
+    --swap-space 8 \
+    --enable-log-requests \
+    --port 8000
