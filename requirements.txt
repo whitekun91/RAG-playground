@@ -61,6 +61,8 @@ jsonpatch==1.33
 jsonpointer==3.0.0
 jsonschema==4.25.1
 jsonschema-specifications==2025.9.1
+kiwipiepy==0.21.0
+kiwipiepy_model==0.21.0
 kubernetes==34.1.0
 langchain==0.3.27
 langchain-chroma==0.2.6
