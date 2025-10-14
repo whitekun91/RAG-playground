@@ -94,10 +94,20 @@ OPENAI_MODEL=gpt-5
 ### Start vLLM (Local)
 ```bash
 CUDA_VISIBLE_DEVICES=0,1 
-python -m vllm.entrypoints.openai.api_server   
-   --model ../models/LM_Models/gemma-3-12b-it  
-   --dtype bfloat16  
-   --max-model-len 4096
+python -m vllm.entrypoints.openai.api_server \
+    --model "./models/LM_Models/gemma-3-12b-it" \
+    --served-model-name "gemma-3-12b-it" \
+    --tokenizer "./models/LM_Models/gemma-3-12b-it" \
+    --dtype bfloat16 \
+    --max-model-len 8192 \
+    --chat-template-content-format auto \
+    --gpu-memory-utilization 0.65 \
+    --tensor-parallel-size 2 \
+    --max-num-seqs 16 \
+    --swap-space 8 \
+    --enable-log-requests \
+    --port 8000
+
 ```
 
 ### Start FastAPI
@@ -174,7 +184,7 @@ RAG-playground/
 ├── settings.py                      # Paths & env
 │
 ├── components
-├── components/image_load.py         # Image select[interface](..%2FManufacturing_LLM%2FRAG%2Finterface)
+├── components/image_load.py         # Image selector
 ├── components/select_vectordb.py    # VectorDB select
 ├── components/split_korean.py       # Korean split
 │
