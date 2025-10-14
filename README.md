@@ -27,7 +27,7 @@ This project automatically downloads Hugging Face embedding models, builds Chrom
        ↓ (similarity search + reranking)
 🧠 Inference Engine (manual): vLLM (local)  |  OpenAI API (cloud)
        ↓
-🎯 Answer with Evidence (문서/도면/로그 근거 포함)
+🎯 Answer with Evidence
 ```
 
 ---
@@ -125,8 +125,8 @@ uvicorn app:app --host 0.0.0.0 --port 5001 --reload
 ```
 
 - `engine`: `"local"` | `"openai"` (required)
-- `model`: local일 때는 vLLM 모델명, openai일 때는 OpenAI 모델명(미입력 시 `.env` 기본값 사용)
-- 기타 샘플 파라미터는 선택
+- `model`: For local, use the vLLM model name; for openai, use the OpenAI model name (if not entered, the default value from `.env` is used)
+- Other sample parameters are optional
 
 ### cURL — Local (vLLM)
 ```bash
@@ -163,9 +163,6 @@ curl -X POST http://localhost:5001/ask   -H "Content-Type: application/json"   -
   "model_used": "gemma-3-12b-it"
 }
 ```
-
-> 📌 URS 준수: “사용자가 질문하면 문서/도면/로그/도메인 지식 근거와 함께 답변 제공”을 위해 `evidence` 필드를 포함합니다.
-
 ---
 
 ## 🧩 Directory
@@ -218,23 +215,23 @@ RAG-playground/
 ## 📘 Roadmap
 
 
-- [ ] OpenAI Whisper STT + Bark TTS (음성 입출력 통합)
-- [ ] Smart document routing (PDF / DOCX / PPTX 자동 분류)
+- [ ] OpenAI Whisper STT + Bark TTS (integrated voice input/output)
+- [ ] Smart document routing (automatic classification of PDF / DOCX / PPTX)
 - [ ] Hybrid Engine Enhancement  
   → Support hybrid RAG with selectable inference engines (Local vLLM / OpenAI API)  
   → Add simple “toggle” parameter or UI for engine switching  
   → Compare OpenAI model quality & latency for hybrid benchmarking
-- [ ] Add multi-turn memory module (대화 기반 문맥 유지)
-- [ ] Add retrieval-evidence visualization on frontend (문서 근거 시각화)
+- [ ] Add multi-turn memory module (context retention based on conversation)
+- [ ] Add retrieval-evidence visualization on frontend (document evidence visualization)
 
 ---
 
 ## 🧑‍💻 Author
 
-**Minwoo Baek (백민우)**  
+**Minwoo Baek  **  
 Senior AI Engineer | PhD Candidate (Big Data Applications)  
 💼 Hanwha Momentum / AI Manufacturing R&D  
-📧 miwnoo.baek@gmail.com  
+📧 minwoo713@gmail.com  
 🔗 LinkedIn: https://www.linkedin.com/in/bjh713/
 
 ---
