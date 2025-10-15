@@ -1,144 +1,21 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>STT·채팅 챗봇</title>
+  <title>STT·Chat Chatbot</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    html, body {
-      height: 100%; margin: 0; padding: 0; box-sizing: border-box;
-      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
-      background: #eef1f5;
-    }
-    body {
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-    .chat-box {
-      box-sizing: border-box;
-      width: 98vw;
-      max-width: 900px;
-      min-width: 280px;
-      height: 90vh;
-      max-height: 95vh;
-      margin: 24px auto 0 auto;
-      border-radius: 20px;
-      border: 1.5px solid #b5c3d2;
-      background: #fff;
-      box-shadow: 0 2px 18px 0 rgba(48, 66, 105, 0.12);
-      display: flex;
-      flex-direction: column;
-      padding: 22px 14px 12px 14px;
-      transition: box-shadow .2s;
-    }
-    .chat-box:focus-within {
-      box-shadow: 0 4px 32px 0 rgba(48,66,105,0.22);
-    }
-    .chat-history {
-      flex: 1 1 0;
-      min-height: 120px;
-      max-height: 100%;
-      overflow-y: auto;
-      margin-bottom: 14px;
-      padding: 12px 8px 4px 4px;
-      background: #fafbfc;
-      border-radius: 10px;
-      border: 1px solid #e0e6ed;
-      font-size: 17px;
-      word-break: break-word;
-      scroll-behavior: smooth;
-    }
-    .chat-msg { margin: 13px 0; }
-    .user-msg { font-weight: bold; color: #2576e8; }
-    .bot-msg { color: #222; }
-    .meta { font-size: 13px; color: #969caa; margin: 4px 0 0 0; }
-    .image-container img {
-      max-width: 96vw;
-      max-width: 580px;
-      margin-bottom: 7px;
-      display: block;
-      border-radius: 7px;
-      border: 1px solid #d1d9e4;
-      background: #fff;
-      box-shadow: 0 1px 4px #ddd7;
-    }
-    .image-container { margin: 13px 0 0 0; }
-    .input-row {
-      display: flex; gap: 7px; margin-bottom: 8px;
-    }
-    input[type="text"] {
-      flex: 1;
-      padding: 13px;
-      font-size: 19px;
-      border-radius: 10px;
-      border: 1.5px solid #bfc9da;
-      background: #f5f7fa;
-      transition: border .2s;
-    }
-    input[type="text"]:focus {
-      border: 1.5px solid #2576e8;
-      outline: none;
-      background: #fff;
-    }
-    button {
-      padding: 0 20px;
-      border-radius: 9px;
-      font-size: 19px;
-      border: 1.5px solid #bfc9da;
-      background: #f0f4f9;
-      cursor: pointer;
-      min-width: 56px;
-      height: 46px;
-      transition: background .15s, border .15s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    button:active, button:focus {
-      background: #dde7f9;
-      border-color: #2576e8;
-      outline: none;
-    }
-    .mic-icon {
-      width: 26px; height: 26px; vertical-align: -3px;
-      display: inline-block;
-      transition: fill 0.2s;
-    }
-    .mic-recording .mic-svg {
-      fill: #e44857 !important;
-      animation: pulse 1s infinite alternate;
-    }
-    @keyframes pulse {
-      0%   { filter: drop-shadow(0 0 0 #e44857); }
-      100% { filter: drop-shadow(0 0 8px #e44857); }
-    }
-    label { cursor: pointer; font-size: 16px; color: #555; }
-    #ttsToggle { transform: scale(1.16); margin-right: 3px; vertical-align: -2px;}
-    @media (max-width: 700px) {
-      .chat-box {
-        width: 100vw;
-        height: 98vh;
-        max-width: 100vw;
-        margin: 0; border-radius: 0;
-        padding: 10px 2vw 8px 2vw;
-      }
-      .chat-history { font-size: 16px; padding: 10px 2px 3px 2px; }
-      input[type="text"] { font-size: 17px; padding: 10px; }
-      button { font-size: 17px; height: 42px; min-width: 46px; padding: 0 12px; }
-      .image-container img { max-width: 94vw; }
-      .mic-icon { width: 22px; height: 22px; }
-    }
-  </style>
+  <!-- Main stylesheet for chat UI -->
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <div class="chat-box">
     <div class="chat-history" id="chatHistory"></div>
     <div class="input-row">
-      <input type="text" id="chatInput" placeholder="질문을 입력하거나 마이크 버튼을 눌러보세요!" autocomplete="off" />
-      <button id="sendBtn">전송</button>
-      <button id="micBtn" title="음성 입력">
+      <input type="text" id="chatInput" placeholder="Type your question or press the mic button!" autocomplete="off" />
+      <button id="sendBtn">Send</button>
+      <button id="micBtn" title="Voice Input">
         <span id="micIcon" class="mic-icon">
-          <!-- 기본 마이크 SVG -->
+          <!-- Default mic SVG icon -->
           <svg class="mic-svg" width="100%" height="100%" viewBox="0 0 24 24" fill="#888" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 16a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v6a4 4 0 0 0 4 4zm5-4a1 1 0 0 1 2 0c0 4.18-3.06 7-7 7s-7-2.82-7-7a1 1 0 1 1 2 0c0 2.97 2.16 5 5 5s5-2.03 5-5zm-5 7a1 1 0 0 1 1 1v1.25a1 1 0 1 1-2 0V20a1 1 0 0 1 1-1z"/>
           </svg>
@@ -147,7 +24,7 @@
     </div>
     <label>
       <input type="checkbox" id="ttsToggle" />
-      TTS 출력 (On/Off)
+      TTS Output (On/Off)
     </label>
   </div>
 
@@ -161,15 +38,24 @@
     const micIcon = document.getElementById('micIcon');
     const ttsToggle = document.getElementById('ttsToggle');
 
-    // 메시지 추가 함수
+    // Function to add a message to the chat
     function addMsg(type, text, meta, imageUrls, audioUrl) {
       const wrap = document.createElement('div');
       wrap.className = 'chat-msg ' + (type === 'user' ? 'user-msg' : 'bot-msg');
-      wrap.innerHTML = `<div>${text}</div>`;
+      // wrap.innerHTML = `<div>${text}</div>`;
+      const textDiv = document.createElement('div');
+      textDiv.className = 'msg-text';
+      textDiv.textContent = text;   // Keep \n as is, CSS handles line breaks
+      wrap.appendChild(textDiv);
+
       if (meta) {
-        wrap.innerHTML += `<div class="meta">${meta}</div>`;
+        // wrap.innerHTML += `<div class="meta">${meta}</div>`;
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'meta';
+        metaDiv.textContent = meta;  // Meta is also handled safely
+        wrap.appendChild(metaDiv);
       }
-      // 이미지가 있으면 출력
+      // Display images if present
       if (Array.isArray(imageUrls) && imageUrls.length > 0) {
         const imageDiv = document.createElement('div');
         imageDiv.className = "image-container";
@@ -180,7 +66,7 @@
         });
         wrap.appendChild(imageDiv);
       }
-      // 오디오가 있으면 재생
+      // Play audio if present
       if (audioUrl) {
         const audio = document.createElement('audio');
         audio.src = audioUrl;
@@ -193,14 +79,14 @@
       chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
-    // 텍스트 질문 보내기
+    // Send text question
     async function sendTextQuestion() {
       const question = chatInput.value.trim();
       if (!question) return;
       addMsg('user', question, null);
       chatInput.value = "";
 
-      addMsg('bot', '⏳ 답변 생성 중...', null);
+      addMsg('bot', '⏳ Generating answer...', null);
 
       const resp = await fetch("/ask-text", {
         method: "POST",
@@ -209,23 +95,23 @@
       });
       const result = await resp.json();
 
-      // 이전 답변(로딩) 삭제
+      // Remove previous answer (loading)
       let loadingNodes = chatHistory.querySelectorAll('.bot-msg');
       if (loadingNodes.length) {
         let last = loadingNodes[loadingNodes.length - 1];
-        if (last && last.textContent.includes('⏳ 답변 생성 중')) last.remove();
+        if (last && last.textContent.includes('⏳ Generating answer')) last.remove();
       }
 
       addMsg(
         'bot',
-        result.rag_answer || "응답 없음",
-        (result.opc_command ? `OPC: ${result.opc_command}, 실행결과: ${result.opc_executed ? "성공" : "실패"}` : null),
+        result.rag_answer || "No response",
+        (result.opc_command ? `OPC: ${result.opc_command}, Execution result: ${result.opc_executed ? "Success" : "Failure"}` : null),
         result.image_urls,
         result.download_url
       );
     }
 
-    // Enter 키 처리
+    // Handle Enter key
     chatInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
         sendTextQuestion();
@@ -233,15 +119,15 @@
     });
     sendBtn.onclick = sendTextQuestion;
 
-    // 음성 질문 (STT)
+    // Voice question (STT)
     micBtn.onclick = async () => {
       try {
         micBtn.disabled = true;
-        // 마이크 녹음 시작: 아이콘 색상/애니메이션 바꿈
+        // Start mic recording: change icon color/animation
         micIcon.classList.add("mic-recording");
         micIcon.querySelector('.mic-svg').setAttribute('fill', '#e44857');
 
-        addMsg('user', '🎙️ 녹음 시작...', null);
+        addMsg('user', '🎙️ Recording started...', null);
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         chunks = [];
@@ -249,9 +135,9 @@
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
 
         mediaRecorder.onstop = async () => {
-          addMsg('user', '⏳ 음성 인식 중...', null);
+          addMsg('user', '⏳ Recognizing speech...', null);
 
-          // 마이크 아이콘 원복
+          // Restore mic icon
           micIcon.classList.remove("mic-recording");
           micIcon.querySelector('.mic-svg').setAttribute('fill', '#888');
           micBtn.disabled = false;
@@ -261,7 +147,7 @@
           formData.append("file", blob, "recorded.webm");
           formData.append("return_audio", ttsToggle.checked.toString());
 
-          // (1) 먼저 STT만 받고, 결과를 chatInput에 띄워줌
+          // (1) First, only get STT and display the result in chatInput
           const response = await fetch("/ask-audio-tts", {
             method: "POST",
             body: formData
@@ -271,21 +157,21 @@
           if (result.stt_text) {
             chatInput.value = result.stt_text;
             chatInput.focus();
-            addMsg('bot', `📝 인식된 질문을 확인/수정 후 전송하세요.`, null);
+            addMsg('bot', `📝 Check/modify the recognized question and send.`, null);
           } else {
-            addMsg('bot', "음성 인식 실패!", null);
+            addMsg('bot', "Speech recognition failed!", null);
           }
         };
 
         mediaRecorder.start();
         setTimeout(() => {
           if (mediaRecorder.state === "recording") mediaRecorder.stop();
-        }, 9000); // 9초 녹음 제한
+        }, 9000); // 9 seconds recording limit
 
       } catch (err) {
         micIcon.classList.remove("mic-recording");
         micIcon.querySelector('.mic-svg').setAttribute('fill', '#888');
-        addMsg('bot', '⚠️ 마이크 접근 실패: ' + err, null);
+        addMsg('bot', '⚠️ Mic access failed: ' + err, null);
         micBtn.disabled = false;
       }
     };
