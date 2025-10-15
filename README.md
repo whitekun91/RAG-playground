@@ -183,32 +183,45 @@ RAG-playground/
 ├── app.py                           # FastAPI entry
 ├── settings.py                      # Paths & env
 │
-├── components
-├── components/image_load.py         # Image selector
-├── components/select_vectordb.py    # VectorDB select
-├── components/split_korean.py       # Korean split
+├── components/                      # Core components (image, vectorDB, split)
+│   ├── image_load.py                # Image selector
+│   ├── select_vectordb.py           # VectorDB select
+│   ├── split_korean.py              # Korean text splitter
 │
-├── interface
-├── interface/create_chain.py        # LLM/RAG chains
-├── interface/load_vector.py         # Chroma loaders (multi-DB)
-├── interface/rag_reranker.py        # RAG Reranker
+├── interface/                       # LLM/RAG chain interface
+│   ├── create_chain.py              # LLM/RAG chains
+│   ├── load_vector.py               # Chroma loaders (multi-DB)
+│   ├── rag_reranker.py              # RAG Reranker
 │
 ├── documents/                       # Source files
-├── documents/vector_db/             # Chroma (PDF)
-├── documents/create_vectordb.py     # Build Chroma from Unstructure data (Include PDF image extraction)
+│   ├── vector_db/                   # Chroma (PDF)
+│   ├── create_vectordb_by_pdf.py    # Build Chroma from unstructured data (PDF/image extraction)
+│   ├── extracted_images/            # Extracted images from PDFs
+│   ├── raw/                         # Raw document files
 │
-├── models/                        
-├── models/llm                       # Local LLM/OpenAI
-├── models/stt                       # STT
-├── models/tts                       # TTS
+├── models/                          # Model files
+│   ├── embeddings/                  # Embedding models
+│   ├── LM_Models/                   # Local LLM models
+│   ├── STT_Models/                  # Speech-to-text models
+│   ├── TTS_Models/                  # Text-to-speech models
+│   ├── llm.py                       # LLM logic
+│   ├── stt.py                       # STT logic
+│   ├── tts.py                       # TTS logic
 │
-├── prompts/                        
-├── prompts/db_select_prompt.py      # VectorDB select               
-├── prompts/image_detect_prompt.py   # Image call                 
-├── prompts/origin_prompt.py         # Base prompt           
+├── prompts/                         # Prompt templates
+│   ├── db_select_prompt.py          # VectorDB select prompt
+│   ├── image_detect_prompt.py       # Image call prompt
+│   ├── origin_prompt.py             # Base prompt
+│
+├── static/                          # Static files (frontend)
+│   ├── index.html                   # Main HTML page
+│   ├── style.css                    # CSS styles
+│
+├── outputs/                         # Output results
 │
 ├── requirements.txt
-└── .env
+├── .env
+└── README.md
 ```
 
 ---
