@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 import json
 import os
 import shutil
@@ -6,11 +10,8 @@ import time
 import traceback
 import warnings
 from pathlib import Path
-from uuid import uuid4
 
-import numpy as np
 import psutil
-import soundfile as sf
 import torch
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
@@ -20,7 +21,6 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from pydantic import BaseModel
 
 from components.select_vectordb import classify_question_to_db_type
-from components.split_korean import split_korean_sentences
 from interface.create_chain import create_db_chain
 from interface.load_vector import setup_vector_store
 from interface.rag_reranker import get_reranked_documents
@@ -32,6 +32,8 @@ from prompts import (
     db_select_prompt,
     image_detect_prompt
 )
+
+from setting import TTS_PROVIDER_DEFAULT
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -48,7 +50,7 @@ class TextQuery(BaseModel):
 
 
 # ──────────────── FastAPI ──────────────── #
-app = FastAPI(title="RAG + STT + TTS + OPC-UA")
+app = FastAPI(title="RAG + STT + TTS")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/images", StaticFiles(directory="./documents/extracted_images"), name="images")
 
@@ -66,22 +68,21 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
 # Load vectorDB
-vector_store, coater_store = setup_vector_store()
+vector_store = setup_vector_store()
 
 # STT
 stt_pipe = load_stt_model(device=device, torch_dtype=torch_dtype)
 
 # TTS
-tts_processor, tts_model, tts_history_prompt = load_tts_model(device=device, torch=torch)
+tts = load_tts_model(device=device, torch=torch)
 
 
 # ────────────────────── Main Handling Query ────────────────────── #
 def handle_query(question_text: str, return_audio: bool = False):
     image_urls = []  # ← (추가)
     db_type = classify_question_to_db_type(db_selector_chain, question_text)
-    retriever = (vector_store if db_type == "docx" else coater_store).as_retriever()
+    retriever = vector_store.as_retriever()
     reranked_docs = get_reranked_documents(retriever, question_text)
-
     rag_chain = (
             {"context": lambda _: reranked_docs, "question": RunnablePassthrough()}
             | prompt
@@ -90,7 +91,7 @@ def handle_query(question_text: str, return_audio: bool = False):
     )
     answer_text = rag_chain.invoke(question_text)
 
-    # ✅ 이미지 요청 시 이미지 링크 추가
+    # ✅ Image link addition for image requests
     if db_type == "pdf":
         image_refs = []
         for doc in reranked_docs:
@@ -101,51 +102,55 @@ def handle_query(question_text: str, return_audio: bool = False):
                 continue
         if image_refs:
             image_refs_dedup = list(dict.fromkeys(image_refs))[:5]
-            # 실제 URL로 변환 (아래처럼 고쳐줘!)
+            # Convert to actual URL (adjust as needed for your server/static path)
             for ref in image_refs_dedup:
-                # ref는 예시로 "extracted_images/manual_1/image_page2_1.png"
-                # 이미지 저장 경로/서버 static 경로에 따라 조정 가능
+                # Example: ref = "extracted_images/manual_1/image_page2_1.png"
                 filename = ref.split("/")[-1]
                 pdf_base = ref.split("/")[-2]
-                url = f"/images/{pdf_base}/{filename}"  # FastAPI에 mount된 경로와 일치!
+                url = f"/images/{pdf_base}/{filename}"  # Must match FastAPI mount path
                 image_urls.append(url)
-            # answer_text += "\n\n 관련 이미지:\n" + "\n".join(image_urls)
+            # answer_text += "\n\n📷 Related images:\n" + "\n".join(image_urls)
 
     response = {
         "question": question_text,
         "rag_answer": answer_text,
         "download_url": None,
-        "image_urls": image_urls if image_urls else None,  # ← (추가)
+        "image_urls": image_urls if image_urls else None,  # (added)
     }
 
-    # ✅ TTS 처리 (OPC 여부와 무관하게)
+    # ✅ TTS processing (regardless of OPC)
     if return_audio:
-        sentences = split_korean_sentences(answer_text)
-        all_audio = []
-        for sentence in sentences:
-            inputs = tts_processor(text=[sentence], return_tensors="pt").to(device)
-            pad_token_id = tts_processor.tokenizer.pad_token_id or tts_processor.tokenizer.eos_token_id
-            with torch.no_grad():
-                audio_array = tts_model.generate(
-                    **inputs,
-                    pad_token_id=pad_token_id,
-                    do_sample=True,
-                    history_prompt=tts_history_prompt,
-                )
-                audio_np = audio_array.cpu().numpy().squeeze()
-                audio_np = np.clip(audio_np, -1.0, 1.0)
-                all_audio.append(audio_np)
-            del inputs, audio_array
-            torch.cuda.empty_cache()
+        import os
+        from uuid import uuid4
+        import logging
 
-        silence = np.zeros(int(0.25 * 24000), dtype=np.float32)
-        combined_audio = np.concatenate([np.concatenate([a, silence]) for a in all_audio])
-        filename = f"{uuid4().hex}.wav"
-        output_path = os.path.join("outputs", filename)
+        provider = (os.getenv("TTS_PROVIDER", TTS_PROVIDER_DEFAULT) or "local").lower()
+        audio_format = (os.getenv("OPENAI_TTS_FORMAT", "mp3").lower()
+                        if provider == "openai" else "wav")
+
         os.makedirs("outputs", exist_ok=True)
-        sf.write(output_path, combined_audio, samplerate=24000)
+        filename = f"{uuid4().hex}.{audio_format}"
+        output_path = os.path.join("outputs", filename)
 
-        response["download_url"] = f"/download/{filename}"
+        try:
+            # Generate TTS audio file
+            # Removed 'format' argument because Speech.create() does not support it
+            tts(
+                answer_text,
+                outfile_path=output_path,
+                instructions="Speak in a clear, friendly tone."
+            )
+            # Check if file was created and is not empty
+            if os.path.isfile(output_path) and os.path.getsize(output_path) > 0:
+                response["download_url"] = f"/download/{filename}"
+                print(f"[TTS SUCCESS] Audio file created: {output_path}")
+            else:
+                print(f"[TTS ERROR] Audio file not created or empty: {output_path}")
+                response["download_url"] = None
+        except Exception as e:
+            # Log error and show reason in UI (optional)
+            print("[TTS ERROR]", e)
+            response["download_url"] = None
 
     return response
 
@@ -160,7 +165,10 @@ async def download_audio(filename: str):
     path = os.path.join("outputs", filename)
     if not os.path.isfile(path):
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(path, media_type="audio/wav", filename=filename)
+
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "wav"
+    media_type = "audio/mpeg" if ext == "mp3" else "audio/wav"
+    return FileResponse(path, media_type=media_type, filename=filename)
 
 @app.get("/status")
 async def server_status():

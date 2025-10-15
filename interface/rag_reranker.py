@@ -1,7 +1,7 @@
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CrossEncoderReranker
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
-from settings import RERANKER_MODEL_PATH
+from setting import RERANKER_MODEL_PATH
 import gc
 import torch
 
