@@ -3,9 +3,8 @@ import os
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from settings import (
+from setting import (
     VECTOR_DB_PATH,
-    COATER_DB_PATH,
     EMBEDDING_MODEL_PATH,
 )
 
@@ -21,14 +20,10 @@ def setup_embeddings():
 def setup_vector_store():
     embeddings = setup_embeddings()
     os.makedirs(VECTOR_DB_PATH, exist_ok=True)
+
     vector_store = Chroma(
         persist_directory=VECTOR_DB_PATH,
         embedding_function=embeddings,
-        collection_name="docx_db"
-    )
-    coater_store = Chroma(
-        persist_directory=COATER_DB_PATH,
-        embedding_function=embeddings,
         collection_name="pdf_db"
     )
-    return vector_store, coater_store
+    return vector_store
