@@ -7,11 +7,11 @@ load_dotenv()
 VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH")
 
 # RAG MODEL PATH
-EMBEDDING_MODEL_PATH = os.getenv("EMBEDDING_MODEL_PATH", "../models/embeddings/ko-sbert-sts")
-RERANKER_MODEL_PATH = os.getenv("RERANKER_MODEL_PATH", "../models/embeddings/bge-reranker-v2-m3")
+EMBEDDING_MODEL_PATH = "./core/models/embeddings/ko-sbert-sts"
+RERANKER_MODEL_PATH = "./core/models/embeddings/bge-reranker-v2-m3"
 
 # STT MODEL (Local & OpenAI)
-STT_MODEL_PATH = os.getenv('STT_MODEL_PATH', '../models/STT_Models/whisper-large-v3-turbo')
+STT_MODEL_PATH = './core/models/STT_Models/whisper-large-v3-turbo'
 OPENAI_STT_MODEL = os.getenv("OPENAI_STT_MODEL", "gpt-4o-mini-transcribe")
 
 # 로컬 / OpenAPI 선택
@@ -32,14 +32,14 @@ DEFAULT_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.5"))
 DEFAULT_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "1024"))
 DEFAULT_TOP_P = float(os.getenv("LLM_TOP_P", "0.95"))
 DEFAULT_TIMEOUT = int(os.getenv("LLM_TIMEOUT_SEC", "45"))
-DEFAULT_STOP = [os.getenv("LLM_STOP", "<end_of_turn>").split("|") if os.getenv("LLM_STOP") else ["<end_of_turn>"]]
+DEFAULT_STOP = os.getenv("LLM_STOP", "<end_of_turn>").split("|") if os.getenv("LLM_STOP") else ["<end_of_turn>"]
 
 
 # TTS MODEL
-BARK_MODEL_PATH = os.getenv("BARK_MODEL_PATH", '../models/TTS_Models/bark')
-BARK_VOICE_SEMANTIC_PROMPT = os.getenv("BARK_VOICE_SEMANTIC_PROMPT", '../models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_semantic_prompt.npy')
-BARK_VOICE_COARSE_PROMPT = os.getenv("BARK_VOICE_COARSE_PROMPT", '../models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_coarse_prompt.npy')
-BARK_VOICE_FINE_PROMPT = os.getenv("BARK_VOICE_FINE_PROMPT", '../models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_fine_prompt.npy')
+BARK_MODEL_PATH = './core/models/TTS_Models/bark'
+BARK_VOICE_SEMANTIC_PROMPT = './core/models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_semantic_prompt.npy'
+BARK_VOICE_COARSE_PROMPT = './core/models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_coarse_prompt.npy'
+BARK_VOICE_FINE_PROMPT = './core/models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_fine_prompt.npy'
 
 
 # OPENAI TTS MODEL
