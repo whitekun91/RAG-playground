@@ -2,7 +2,6 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import json
 import os
 import shutil
 import tempfile
@@ -14,26 +13,31 @@ from pathlib import Path
 import psutil
 import torch
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.responses import PlainTextResponse, Response
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from langchain.schema.output_parser import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from pydantic import BaseModel
 
-from components.select_vectordb import classify_question_to_db_type
-from interface.create_chain import create_db_chain
-from interface.load_vector import setup_vector_store
-from interface.rag_reranker import get_reranked_documents
-from models.llm import call_llm
-from models.stt import load_stt_model
-from models.tts import load_tts_model
-from prompts import (
+from services.rag.chains import ChainService
+from services.rag.vector_store import VectorStoreService
+from services.rag.reranker import RerankService
+from services.providers.llm_manager import create_llm_manager
+from services.providers.stt_manager import create_stt_manager
+from services.providers.tts_manager import create_tts_manager
+from services.pipeline.orchestrator import PipelineService
+from services.rag.query_service import QueryService
+from services.rag.db_classifier import build_db_classifier
+from core.interface.prompts import (
     origin_prompt,
     db_select_prompt,
     image_detect_prompt
 )
 
 from setting import TTS_PROVIDER_DEFAULT
+from core.utils.config import AppConfig
+from core.utils.observability import SimpleLogger
+from core.utils.metrics import Metrics
+from core.utils.errors import AppError, error_response
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -53,112 +57,89 @@ class TextQuery(BaseModel):
 app = FastAPI(title="RAG + STT + TTS")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/images", StaticFiles(directory="./documents/extracted_images"), name="images")
+# ────────────────────── Exception Handlers ────────────────────── #
+@app.exception_handler(AppError)
+async def handle_app_error(_, exc: AppError):
+    return JSONResponse(status_code=exc.status, content=error_response(exc))
+
+@app.exception_handler(Exception)
+async def handle_unexpected_error(_, exc: Exception):
+    return JSONResponse(status_code=500, content=error_response(exc))
 
 # ──────────────── Prompt Setting ──────────────── #
-prompt = origin_prompt.prompt
-db_select_prompt = db_select_prompt.prompt
-image_detect_prompt = image_detect_prompt.prompt
+prompt = origin_prompt
+db_select_prompt = db_select_prompt
+image_detect_prompt = image_detect_prompt
 
 # ──────────────── LLM 호출 및 체인 구성 ──────────────── #
-db_selector_chain = create_db_chain(db_select_prompt, call_llm)
 # image_request_chain = create_image_chain(image_detect_prompt, call_vllm)
 
 # ────────────────────── Load Components ────────────────────── #
+# Config & Observability
+config = AppConfig.from_env(TTS_PROVIDER_DEFAULT)
+logger = SimpleLogger()
+metrics = Metrics()
 device = "cuda" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
+# Instantiate VectorStoreService
+vector_service = VectorStoreService()
+
 # Load vectorDB
-vector_store = setup_vector_store()
+vector_store = vector_service.create()
 
 # STT
-stt_pipe = load_stt_model(device=device, torch_dtype=torch_dtype)
+stt_manager = create_stt_manager()
 
 # TTS
-tts = load_tts_model(device=device, torch=torch)
+tts_manager = create_tts_manager()
+
+# Instantiate ChainService
+chain_service = ChainService()
+
+# Instantiate RerankService
+reranker = RerankService()
+
+# Instantiate LLMManager
+llm_manager = create_llm_manager()
+
+# Build db selector chain via ChainService and LLM manager
+db_selector_chain = chain_service.create_db_chain(db_select_prompt, llm_manager.call_llm)
+
+# Build QueryService which encapsulates full RAG flow
+_db_classifier_fn = build_db_classifier(db_selector_chain)
+
+query_service = QueryService(
+    db_classifier=_db_classifier_fn,
+    vector_store=vector_store,
+    prompt=prompt,
+    call_llm=llm_manager.call_llm,
+    reranker=reranker,
+)
+
+# Pipeline orchestrator
+pipeline = PipelineService(
+    query_service=query_service,
+    stt_manager=stt_manager,
+    tts_manager=tts_manager,
+    tts_provider_default=TTS_PROVIDER_DEFAULT,
+)
 
 
 # ────────────────────── Main Handling Query ────────────────────── #
 def handle_query(question_text: str, return_audio: bool = False):
-    image_urls = []  # ← (추가)
-    db_type = classify_question_to_db_type(db_selector_chain, question_text)
-    retriever = vector_store.as_retriever()
-    reranked_docs = get_reranked_documents(retriever, question_text)
-    rag_chain = (
-            {"context": lambda _: reranked_docs, "question": RunnablePassthrough()}
-            | prompt
-            | RunnableLambda(lambda x: call_llm(x.to_string()))
-            | StrOutputParser()
-    )
-    answer_text = rag_chain.invoke(question_text)
-
-    # ✅ Image link addition for image requests
-    if db_type == "pdf":
-        image_refs = []
-        for doc in reranked_docs:
-            try:
-                img_list = json.loads(doc.metadata.get("image_refs", "[]"))
-                image_refs.extend(img_list)
-            except Exception:
-                continue
-        if image_refs:
-            image_refs_dedup = list(dict.fromkeys(image_refs))[:5]
-            # Convert to actual URL (adjust as needed for your server/static path)
-            for ref in image_refs_dedup:
-                # Example: ref = "extracted_images/manual_1/image_page2_1.png"
-                filename = ref.split("/")[-1]
-                pdf_base = ref.split("/")[-2]
-                url = f"/images/{pdf_base}/{filename}"  # Must match FastAPI mount path
-                image_urls.append(url)
-            # answer_text += "\n\n📷 Related images:\n" + "\n".join(image_urls)
-
-    response = {
-        "question": question_text,
-        "rag_answer": answer_text,
-        "download_url": None,
-        "image_urls": image_urls if image_urls else None,  # (added)
-    }
-
-    # ✅ TTS processing (regardless of OPC)
-    if return_audio:
-        import os
-        from uuid import uuid4
-        import logging
-
-        provider = (os.getenv("TTS_PROVIDER", TTS_PROVIDER_DEFAULT) or "local").lower()
-        audio_format = (os.getenv("OPENAI_TTS_FORMAT", "mp3").lower()
-                        if provider == "openai" else "wav")
-
-        os.makedirs("outputs", exist_ok=True)
-        filename = f"{uuid4().hex}.{audio_format}"
-        output_path = os.path.join("outputs", filename)
-
-        try:
-            # Generate TTS audio file
-            # Removed 'format' argument because Speech.create() does not support it
-            tts(
-                answer_text,
-                outfile_path=output_path,
-                instructions="Speak in a clear, friendly tone."
-            )
-            # Check if file was created and is not empty
-            if os.path.isfile(output_path) and os.path.getsize(output_path) > 0:
-                response["download_url"] = f"/download/{filename}"
-                print(f"[TTS SUCCESS] Audio file created: {output_path}")
-            else:
-                print(f"[TTS ERROR] Audio file not created or empty: {output_path}")
-                response["download_url"] = None
-        except Exception as e:
-            # Log error and show reason in UI (optional)
-            print("[TTS ERROR]", e)
-            response["download_url"] = None
-
-    return response
+    return pipeline.ask_text(question_text, return_audio=return_audio)
 
 # ────────────────────── FastAPI 라우팅 ────────────────────── #
 @app.get("/", response_class=HTMLResponse)
 async def serve_ui():
     html_path = Path("static/index.html")
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+
+@app.get("/favicon.ico")
+async def favicon():
+    # favicon.ico 요청에 대해 204 No Content 응답
+    return Response(status_code=204)
 
 @app.get("/download/{filename}")
 async def download_audio(filename: str):
@@ -173,6 +154,8 @@ async def download_audio(filename: str):
 @app.get("/status")
 async def server_status():
     try:
+        metrics.inc("status.requests")
+        finish = metrics.time("status.latency")
         gpu_available = torch.cuda.is_available()
         status = {
             "status": "ok",
@@ -182,14 +165,34 @@ async def server_status():
             "memory_reserved_MB": torch.cuda.memory_reserved() / 1024 / 1024 if gpu_available else 0,
             "uptime_sec": round(time.time() - psutil.boot_time(), 2)
         }
+        finish()
         return status
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={
-                "error": str(e),
-                "trace": traceback.format_exc()
-            }
+            content=error_response(e) | {"trace": traceback.format_exc()}
+        )
+
+@app.get("/metrics", response_class=PlainTextResponse)
+async def metrics_endpoint():
+    try:
+        # Very basic exposition format
+        lines = []
+        for k, v in metrics.counters.items():
+            lines.append(f"app_counter{{name=\"{k}\"}} {v}")
+        for k, total in metrics.timers_total.items():
+            cnt = metrics.timers_count.get(k, 0)
+            avg = metrics.avg(k)
+            lines.append(f"app_timer_total_seconds{{name=\"{k}\"}} {total}")
+            lines.append(f"app_timer_count{{name=\"{k}\"}} {cnt}")
+            lines.append(f"app_timer_avg_seconds{{name=\"{k}\"}} {avg}")
+        return "\n".join(lines) + "\n"
+    except Exception as e:
+        return PlainTextResponse(str(e), status_code=500)
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content=error_response(e) | {"trace": traceback.format_exc()}
         )
 
 @app.get("/pdf-images/{pdf_name}")
@@ -213,27 +216,31 @@ async def ask_audio_tts(file: UploadFile = File(...), return_audio: bool = Form(
             shutil.copyfileobj(file.file, tmp_file)
             tmp_audio_path = tmp_file.name
 
-        stt_result = stt_pipe(tmp_audio_path)
-        question_text = stt_result["text"]
+        wrapped = logger.wrap("ask-audio-tts", pipeline.ask_audio)
+        metrics.inc("ask_audio.requests")
+        finish = metrics.time("ask_audio.latency")
+        result = wrapped(tmp_audio_path, return_audio)
         os.remove(tmp_audio_path)
-
-        result = handle_query(question_text, return_audio)
-        result["stt_text"] = question_text
+        finish()
         result["elapsed_time"] = f"{round(time.time() - start, 2)}s"
         return result
 
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e), "trace": traceback.format_exc()})
+        return JSONResponse(status_code=500, content=error_response(e) | {"trace": traceback.format_exc()})
 
 
 @app.post("/ask-text")
 async def ask_text_tts(query: TextQuery):
     start = time.time()
     try:
-        result = handle_query(query.question, query.return_audio)
+        wrapped = logger.wrap("ask-text", handle_query)
+        metrics.inc("ask_text.requests")
+        finish = metrics.time("ask_text.latency")
+        result = wrapped(query.question, query.return_audio)
+        finish()
         result["input_text"] = query.question
         result["elapsed_time"] = f"{round(time.time() - start, 2)}s"
         return result
 
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e), "trace": traceback.format_exc()})
+        return JSONResponse(status_code=500, content=error_response(e) | {"trace": traceback.format_exc()})

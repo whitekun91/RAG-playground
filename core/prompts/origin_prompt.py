@@ -1,7 +1,7 @@
 from langchain_core.prompts import PromptTemplate
 
 
-prompt = PromptTemplate.from_template(
+origin_prompt = PromptTemplate.from_template(
     """Use the following context to answer the question in Korean.
 
 If the context or metadata contains any image references (e.g., `image_refs` or image URLs),

@@ -1,20 +1,23 @@
-# 🧠 RAG-playground
+# 🧠 RAG Playground
 
-A **FastAPI-based Retrieval-Augmented Generation (RAG)** template for hybrid local and cloud LLM inference.  
-This project automatically downloads Hugging Face embedding models, builds Chroma vector stores, and performs local inference via **vLLM**.  
-> 🔀 **Engine switch is manual**: choose between **local (vLLM)** and **openai** per request with a simple parameter (no automatic fallback).
+A **FastAPI-based Retrieval-Augmented Generation (RAG)** system with modern UI and comprehensive AI services.  
+This project provides a complete RAG solution with STT, TTS, and document processing capabilities using both local and cloud AI models.
 
 ---
 
 ## 🚀 Features
 
-✅ **FastAPI backend** for RAG  
-✅ **vLLM local inference** (e.g., Gemma, Mistral, Llama)  
-✅ **Manual engine switch** — `engine: "local" | "openai"` per request  
-✅ **Chroma vector database** for retrieval  
-✅ **CrossEncoder reranking** for better context  
-✅ **LangChain orchestration**  
-✅ Clean, modular codebase ready for on-prem or hybrid
+✅ **Modern Web Interface** - Beautiful, responsive UI with glassmorphism design  
+✅ **FastAPI Backend** - High-performance API with comprehensive endpoints  
+✅ **RAG System** - Document retrieval and question answering  
+✅ **Speech-to-Text (STT)** - Voice input with Whisper support  
+✅ **Text-to-Speech (TTS)** - Audio output with multiple providers  
+✅ **Multi-modal Support** - Text, audio, and image processing  
+✅ **Vector Database** - ChromaDB with embedding models  
+✅ **Document Reranking** - CrossEncoder for improved accuracy  
+✅ **Clean Architecture** - Modular services and core separation  
+✅ **SSL Support** - HTTPS with custom certificates  
+✅ **Virtual Environment** - Python venv for dependency management  
 
 ---
 
@@ -23,11 +26,13 @@ This project automatically downloads Hugging Face embedding models, builds Chrom
 ```
 📄 Documents (.pdf, .docx, .pptx, .xlsx)
        ↓ (text/image extraction)
-🧩 LangChain + Chroma VectorDB
+🧩 Chroma VectorDB + CrossEncoder Reranking
        ↓ (similarity search + reranking)
-🧠 Inference Engine (manual): vLLM (local)  |  OpenAI API (cloud)
+🧠 LLM Engine: Local (vLLM) | Cloud (OpenAI)
        ↓
 🎯 Answer with Evidence
+       ↓ (optional)
+🎤 STT (Audio Input) / 🔊 TTS (Audio Output)
 ```
 
 ---
@@ -35,223 +40,362 @@ This project automatically downloads Hugging Face embedding models, builds Chrom
 ## 🧰 Tech Stack
 
 | Component | Description |
-|------------|-------------|
-| **Backend** | FastAPI |
-| **Vector DB** | Chroma |
-| **Embeddings** | Hugging Face (e.g. `jhgan/ko-sbert-sts`) |
-| **Reranker** | `bge-reranker-v2-m3` |
-| **Local LLM** | vLLM (e.g. `gemma-3-12b-it`) |
+|-----------|-------------|
+| **Backend** | FastAPI with uvicorn |
+| **Frontend** | Modern HTML5 + CSS3 with glassmorphism |
+| **Vector DB** | ChromaDB |
+| **Embeddings** | Hugging Face (ko-sbert-sts) |
+| **Reranker** | bge-reranker-v2-m3 |
+| **Local LLM** | vLLM (gemma-3-12b-it) |
 | **Cloud LLM** | OpenAI GPT family |
-| **Orchestration** | LangChain |
-| **Hardware** | Multi-GPU (CUDA_VISIBLE_DEVICES=0,1) supported |
+| **STT** | Whisper (local) / OpenAI Whisper API |
+| **TTS** | Bark (local) / OpenAI TTS API |
+| **Architecture** | Services/Core separation |
+| **Virtual Env** | Python venv |
 
 ---
 
 ## 📦 Installation
 
-### 1) Clone
+### 1) Clone Repository
 ```bash
 git clone https://github.com/whitekun91/RAG-playground.git
 cd RAG-playground
 ```
 
-### 2) Virtual Env
+### 2) Create Virtual Environment
 ```bash
+# Create virtual environment
 python -m venv .venv
-source .venv/bin/activate   # Linux/Mac
-.venv\Scripts\activate      # Windows
+
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# Linux/Mac:
+source .venv/bin/activate
 ```
 
-### 3) Install
+### 3) Install Dependencies
 ```bash
 pip install -U pip
 pip install -r requirements.txt
 ```
 
-> ⚠️ Ensure your `torch`/`transformers` CUDA wheels match your system (e.g., cu121/cu126).
-
----
-
-## ⚙️ Environment (`.env`)
-
+### 4) Environment Configuration
 ```bash
-# Embeddings & Reranker
-EMB_MODEL_PATH=../models/embeddings/ko-sbert-sts
-RERANKER_PATH=../models/reranker/bge-reranker-v2-m3
+# Copy environment template
+cp .env.example .env
 
-# Local LLM (vLLM OpenAI-compatible server)
-VLLM_MODEL=gemma-3-12b-it
-VLLM_URL=http://0.0.0.0:8000/v1/completions
-
-# OpenAI (cloud)
-OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxx
-OPENAI_MODEL=gpt-5
+# Edit .env file with your settings
+# Required: Set your API keys and model paths
 ```
+
 ---
 
-## ▶️ Run
+## ⚙️ Environment Configuration (`.env`)
 
-### Start vLLM (Local)
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 
+# VectorDB 경로
+VECTOR_DB_PATH='./documents/vector_db/'
+
+# AI 모델 경로
+EMBEDDING_MODEL_PATH='./models/embeddings/ko-sbert-sts'
+RERANKER_MODEL_PATH='./models/embeddings/bge-reranker-v2-m3'
+
+# 허깅페이스 토큰 (필요시)
+# HF_TOKEN = "your_huggingface_token_here"
+
+# 텍스트 토크나이징 하이퍼파라미터
+CHUNK_SIZE=600
+CHUNK_OVERLAP=0
+
+# AI 서비스 제공자 (local / openai)
+STT_PROVIDER=openai
+CHAT_PROVIDER=openai
+TTS_PROVIDER=openai
+
+# 로컬 LLM 설정
+LM_MODEL_PATH='./models/LM_Models/gemma-3-12b-it'
+VLLM_BASE_URL=http://localhost:8000
+VLLM_MODEL=gemma-3-12b-it
+VLLM_API_KEY=sk-samples
+
+# OpenAI API 설정 (필요시)
+# OPENAI_API_KEY='your_openai_api_key_here'
+OPENAI_MODEL=gpt-4.1
+
+# LLM 하이퍼파라미터
+LLM_TEMPERATURE=0.5
+LLM_MAX_TOKENS=1024
+LLM_TOP_P=0.95
+LLM_STOP=<end_of_turn>
+
+# TTS 설정
+BARK_MODEL_PATH='./models/TTS_Models/bark'
+BARK_VOICE_SEMANTIC_PROMPT='./models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_semantic_prompt.npy'
+BARK_VOICE_COARSE_PROMPT='./models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_coarse_prompt.npy'
+BARK_VOICE_FINE_PROMPT='./models/TTS_Models/bark/speaker_embeddings/v2/ko_speaker_0_fine_prompt.npy'
+
+# STT 모델 경로
+STT_MODEL_PATH='./models/STT_Models/whisper-large-v3-turbo'
+
+# OpenAI STT/TTS 모델
+OPENAI_STT_MODEL=gpt-4o-mini-transcribe
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=alloy
+OPENAI_TTS_FORMAT=mp3
+```
+
+---
+
+## ▶️ Quick Start
+
+### 1) Start vLLM Server (Optional - for local LLM)
+```bash
+# GPU 설정 (다중 GPU 사용 시)
+export CUDA_VISIBLE_DEVICES=0,1
+
+# vLLM 서버 시작
 python -m vllm.entrypoints.openai.api_server \
-    --model "./models/LM_Models/gemma-3-12b-it" \
+    --model "your-model-path" \
     --served-model-name "gemma-3-12b-it" \
-    --tokenizer "./models/LM_Models/gemma-3-12b-it" \
     --dtype bfloat16 \
     --max-model-len 8192 \
-    --chat-template-content-format auto \
     --gpu-memory-utilization 0.65 \
     --tensor-parallel-size 2 \
     --max-num-seqs 16 \
     --swap-space 8 \
     --enable-log-requests \
     --port 8000
-
 ```
 
-### Start FastAPI
+### 2) Start RAG Playground Server
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 5001 --reload
+# 가상환경 활성화 (이미 활성화된 경우 생략)
+# Windows:
+.venv\Scripts\activate
+# Linux/Mac:
+source .venv/bin/activate
+
+# 서버 시작
+python run_main.py --reload
+
+# SSL로 실행 (HTTPS)
+python run_main.py --ssl --reload
+
+# 포트 변경
+python run_main.py --port 8080 --reload
+
+# 환경 확인만
+python run_main.py --check-only
+```
+
+### 3) Access Web Interface
+- **HTTP**: http://localhost:5001
+- **HTTPS**: https://localhost:5001 (SSL 인증서 필요)
+
+---
+
+## 💬 API Endpoints
+
+### 🎯 Main Endpoints
+
+#### `POST /ask-text` - Text Query
+```json
+{
+  "question": "What is the main topic of the document?",
+  "return_audio": false
+}
+```
+
+#### `POST /ask-audio-tts` - Audio Query with TTS
+```json
+{
+  "file": "audio_file.webm",
+  "return_audio": true
+}
+```
+
+### 📊 System Endpoints
+
+#### `GET /` - Web Interface
+Returns the modern HTML interface with glassmorphism design
+
+#### `GET /status` - System Status
+```json
+{
+  "status": "ok",
+  "gpu_available": true,
+  "device": "NVIDIA GeForce RTX 4090",
+  "memory_allocated_MB": 2048,
+  "memory_reserved_MB": 4096,
+  "uptime_sec": 3600
+}
+```
+
+#### `GET /metrics` - Performance Metrics
+Returns Prometheus-style metrics
+
+#### `GET /download/{filename}` - Download Audio
+Download generated TTS audio files
+
+#### `GET /pdf-images/{pdf_name}` - PDF Images
+Get extracted images from PDF documents
+
+### 🔧 Example Usage
+
+#### Text Query
+```bash
+curl -X POST http://localhost:5001/ask-text \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What is the main topic?",
+    "return_audio": false
+  }'
+```
+
+#### Audio Query with TTS Response
+```bash
+curl -X POST http://localhost:5001/ask-audio-tts \
+  -F "file=@audio.wav" \
+  -F "return_audio=true"
+```
+
+### 📝 Response Format
+```json
+{
+  "question": "What is the main topic?",
+  "rag_answer": "The main topic is...",
+  "download_url": "/download/audio_file.wav",
+  "image_urls": ["/images/doc1/page1.png"],
+  "elapsed_time": "2.5s"
+}
 ```
 
 ---
 
-## 💬 API — Manual Engine Switch
-
-### Endpoint
-`POST /ask`
-
-### Request Body (common)
-```json
-{
-  "question": "~~~~~~~",
-  "engine": "local",
-  "model": "gemma-3-12b-it",
-  "top_p": 0.9,
-  "temperature": 0.3,
-  "max_tokens": 512
-}
-```
-
-- `engine`: `"local"` | `"openai"` (required)
-- `model`: For local, use the vLLM model name; for openai, use the OpenAI model name (if not entered, the default value from `.env` is used)
-- Other sample parameters are optional
-
-### cURL — Local (vLLM)
-```bash
-curl -X POST http://localhost:5001/ask   -H "Content-Type: application/json"   -d '{
-    "question": "~~~~~~~~~~~",
-    "engine": "local",
-    "model": "gemma-3-12b-it",
-    "temperature": 0.2,
-    "top_p": 0.9,
-    "max_tokens": 512
-  }'
-```
-
-### cURL — OpenAI
-```bash
-curl -X POST http://localhost:5001/ask   -H "Content-Type: application/json"   -d '{
-    "question": "~~~~~~~~~",
-    "engine": "openai",
-    "model": "gpt-5",
-    "temperature": 0.2,
-    "top_p": 0.9,
-    "max_tokens": 512
-  }'
-```
-
-### Response (example)
-```json
-{
-  "answer": "~~~~~~~~~~",
-  "evidence": [
-    "documents/~~~~~~~~~~~~~.pdf"
-  ],
-  "engine": "local",
-  "model_used": "gemma-3-12b-it"
-}
-```
----
-
-## 🧩 Directory
+## 🧩 Directory Structure
 
 ```
 RAG-playground/
 │
-├── app.py                           # FastAPI entry
-├── settings.py                      # Paths & env
+├── main.py                          # FastAPI entry point
+├── run_main.py                      # Server startup script
+├── setting.py                       # Configuration & environment
 │
-├── components/                      # Core components (image, vectorDB, split)
-│   ├── image_load.py                # Image selector
-│   ├── select_vectordb.py           # VectorDB select
-│   ├── split_korean.py              # Korean text splitter
+├── core/                            # Core business logic
+│   ├── components/                  # Core components
+│   │   ├── image_loader.py          # Image processing
+│   │   ├── vector_selector.py       # Vector DB selection
+│   │   └── korean_splitter.py       # Korean text splitting
+│   ├── interface/                   # Interface layer
+│   │   └── prompts.py               # Prompt templates
+│   ├── models/                      # Model files & utilities
+│   │   ├── embeddings/              # Embedding models
+│   │   ├── stt_models/              # Speech-to-text models
+│   │   ├── tts_models/              # Text-to-speech models
+│   │   └── model_downloader.py      # Model download utility
+│   ├── prompts/                     # Prompt templates
+│   │   ├── db_select_prompt.py      # DB selection prompts
+│   │   ├── image_detect_prompt.py   # Image detection prompts
+│   │   └── origin_prompt.py         # Base RAG prompts
+│   └── utils/                       # Utility functions
+│       ├── config.py                # Configuration management
+│       ├── errors.py                # Error handling
+│       ├── metrics.py               # Performance metrics
+│       └── observability.py         # Logging & monitoring
 │
-├── interface/                       # LLM/RAG chain interface
-│   ├── create_chain.py              # LLM/RAG chains
-│   ├── load_vector.py               # Chroma loaders (multi-DB)
-│   ├── rag_reranker.py              # RAG Reranker
+├── services/                        # Service layer (client-core bridge)
+│   ├── llm_core.py                  # LLM core functions
+│   ├── stt_core.py                  # STT core functions
+│   ├── tts_core.py                  # TTS core functions
+│   ├── rag/                         # RAG services
+│   │   ├── chains.py                # Chain services
+│   │   ├── vector_store.py          # Vector store services
+│   │   ├── reranker.py              # Document reranking
+│   │   ├── query_service.py         # Query processing
+│   │   ├── composer.py              # RAG response composer
+│   │   ├── image_builder.py         # Image link builder
+│   │   └── db_classifier.py         # Database classification
+│   ├── pipeline/                    # Pipeline orchestration
+│   │   └── orchestrator.py          # Main pipeline orchestrator
+│   └── providers/                   # Provider managers
+│       ├── llm_manager.py           # LLM provider management
+│       ├── stt_manager.py           # STT provider management
+│       └── tts_manager.py           # TTS provider management
 │
-├── documents/                       # Source files
-│   ├── vector_db/                   # Chroma (PDF)
-│   ├── create_vectordb_by_pdf.py    # Build Chroma from unstructured data (PDF/image extraction)
+├── documents/                       # Document storage
+│   ├── vector_db/                   # Chroma vector database
 │   ├── extracted_images/            # Extracted images from PDFs
-│   ├── raw/                         # Raw document files
+│   └── raw/                         # Raw document files
 │
-├── models/                          # Model files
-│   ├── embeddings/                  # Embedding models
-│   ├── LM_Models/                   # Local LLM models
-│   ├── STT_Models/                  # Speech-to-text models
-│   ├── TTS_Models/                  # Text-to-speech models
-│   ├── llm.py                       # LLM logic
-│   ├── stt.py                       # STT logic
-│   ├── tts.py                       # TTS logic
+├── static/                          # Frontend files
+│   ├── index.html                   # Modern HTML interface
+│   └── style.css                    # Glassmorphism CSS styles
 │
-├── prompts/                         # Prompt templates
-│   ├── db_select_prompt.py          # VectorDB select prompt
-│   ├── image_detect_prompt.py       # Image call prompt
-│   ├── origin_prompt.py             # Base prompt
-│
-├── static/                          # Static files (frontend)
-│   ├── index.html                   # Main HTML page
-│   ├── style.css                    # CSS styles
-│
-├── outputs/                         # Output results
-│
-├── requirements.txt
-├── .env
-└── README.md
+├── outputs/                         # Generated outputs
+├── requirements.txt                 # Python dependencies
+├── .env.example                     # Environment template
+├── .env                            # Environment variables (create from .env.example)
+├── key.pem                         # SSL private key (for HTTPS)
+├── cert.pem                        # SSL certificate (for HTTPS)
+└── README.md                       # This file
 ```
 
 ---
 
-## 🧪 Notes
+## 🎨 UI Features
 
-- Ubuntu 22.04 / CUDA 12.x / Python 3.10  
-- vLLM 0.6+ / LangChain 0.2+  
-- Multi-GPU and long-context friendly  
-- Designed for **RAG** with verifiable evidence
+- **Modern Design** - Glassmorphism with gradient backgrounds
+- **Responsive Layout** - Mobile and desktop optimized
+- **Interactive Elements** - Smooth animations and transitions
+- **Voice Input** - Real-time speech recognition
+- **Audio Output** - Text-to-speech with play controls
+- **Image Gallery** - Document image display with modal view
+- **Real-time Chat** - Live conversation interface
+
+---
+
+## 🧪 System Requirements
+
+- **Python**: 3.9+
+- **OS**: Windows 10+, Ubuntu 20.04+, macOS 10.15+
+- **GPU**: NVIDIA GPU with CUDA support (optional)
+- **RAM**: 8GB+ recommended
+- **Storage**: 10GB+ for models and documents
 
 ---
 
 ## 📘 Roadmap
 
+### ✅ Completed Features
+- [x] **Modern UI** - Glassmorphism design with responsive layout
+- [x] **STT/TTS Integration** - Whisper STT + Bark/OpenAI TTS
+- [x] **Clean Architecture** - Services/Core separation
+- [x] **Pipeline Orchestration** - Complex workflow management
+- [x] **Multi-modal Support** - Text, audio, and image processing
+- [x] **SSL Support** - HTTPS with custom certificates
+- [x] **Virtual Environment** - Python venv management
 
-- [ ] OpenAI Whisper STT + Bark TTS (integrated voice input/output)
-- [ ] Smart document routing (automatic classification of PDF / DOCX / PPTX)
-- [ ] Hybrid Engine Enhancement  
-  → Support hybrid RAG with selectable inference engines (Local vLLM / OpenAI API)  
-  → Add simple “toggle” parameter or UI for engine switching  
-  → Compare OpenAI model quality & latency for hybrid benchmarking
-- [ ] Add multi-turn memory module (context retention based on conversation)
-- [ ] Add retrieval-evidence visualization on frontend (document evidence visualization)
+### 🚧 In Progress
+- [ ] **Performance Optimization** - GPU memory management
+- [ ] **Error Handling** - Robust error recovery
+- [ ] **Document Upload** - Web interface for document management
+
+### 🔮 Future Features
+- [ ] **Multi-turn Memory** - Conversation context retention
+- [ ] **Smart Document Routing** - Automatic PDF/DOCX/PPTX classification
+- [ ] **Evidence Visualization** - Enhanced document evidence display
+- [ ] **Real-time Streaming** - Live audio processing
+- [ ] **Multi-language Support** - Internationalization
+- [ ] **User Authentication** - Login and user management
+- [ ] **API Rate Limiting** - Request throttling and quotas
 
 ---
 
 ## 🧑‍💻 Author
 
-**Minwoo Baek  **  
+**Minwoo Baek**  
 Senior AI Engineer | PhD Candidate (Big Data Applications)  
 💼 Hanwha Momentum / AI Manufacturing R&D  
 📧 minwoo713@gmail.com  

@@ -1,0 +1,171 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# RAG Playground specific
+# 모델 파일들 (용량이 크므로 제외)
+embeddings/
+core/models/stt_models/
+TTS_Models/
+models/
+
+# 벡터 데이터베이스
+documents/vector_db/
+*.db
+*.sqlite3
+
+# 출력 파일들
+outputs/
+*.mp3
+*.wav
+*.mp4
+
+# 로그 파일들
+*.log
+logs/
+
+# 임시 파일들
+temp/
+tmp/
+*.tmp
+
+# 테스트 및 개발용 파일들 (Git에 올리지 않음)
+run_test.py
+run_wsl.sh
+test_server.bat
+start_server.bat
+start_server.sh
+
+# 모델 다운로드 스크립트 (Git에 포함)
+# download_models.py
+# download_models.bat
+
+# 설정 파일들 (개인 설정)
+.env.local
+.env.development
+.env.test
+.env.production
+
+# 백업 파일들
+*.bak
+*.backup
+*~
+
+# 압축 파일들
+*.zip
+*.tar.gz
+*.rar
+*.7z

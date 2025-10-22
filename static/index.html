@@ -1,133 +1,148 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>STT·Chat Chatbot</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Main stylesheet for chat UI -->
-  <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Playground - AI 어시스턴트</title>
+    <link rel="stylesheet" href="/static/style.css?v=3.0">
 </head>
 <body>
-  <div class="chat-box">
-    <div class="chat-history" id="chatHistory"></div>
-    <div class="input-row">
-      <input type="text" id="chatInput" placeholder="Type your question or press the mic button!" autocomplete="off" />
-      <button id="sendBtn">Send</button>
-      <button id="micBtn" title="Voice Input">
-        <span id="micIcon" class="mic-icon">
-          <!-- Default mic SVG icon -->
-          <svg class="mic-svg" width="100%" height="100%" viewBox="0 0 24 24" fill="#888" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 16a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v6a4 4 0 0 0 4 4zm5-4a1 1 0 0 1 2 0c0 4.18-3.06 7-7 7s-7-2.82-7-7a1 1 0 1 1 2 0c0 2.97 2.16 5 5 5s5-2.03 5-5zm-5 7a1 1 0 0 1 1 1v1.25a1 1 0 1 1-2 0V20a1 1 0 0 1 1-1z"/>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 RAG Playground</h1>
+            <p>AI-Powered Document Search & Analysis</p>
+            <p>STT · TTS · RAG 통합 서비스</p>
+            <div class="service-badges">
+                <span class="badge rag-badge">📚 RAG</span>
+                <span class="badge stt-badge">🎤 STT</span>
+                <span class="badge tts-badge">🔊 TTS</span>
+            </div>
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="sender">AI 어시스턴트</span>
+                            <span class="timestamp" id="welcomeTime"></span>
+                        </div>
+                        <div class="message-text">
+                            안녕하세요! 저는 RAG Playground AI 어시스턴트입니다.<br><br>
+                            <strong>📚 RAG 기능:</strong> 문서 검색 및 질의응답<br>
+                            <strong>🎤 STT 기능:</strong> 음성 인식 및 텍스트 변환<br>
+                            <strong>🔊 TTS 기능:</strong> 텍스트 음성 변환<br><br>
+                            텍스트로 질문하거나 마이크 버튼을 눌러 음성으로 질문해보세요!
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="input-options">
+                    <div class="audio-options">
+                        <label class="audio-toggle">
+                            <input type="checkbox" id="ttsEnabled">
+                            <span class="toggle-text">🔊 음성 출력</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <textarea id="messageInput" placeholder="질문을 입력하세요... (예: '문서에서 관련 정보를 찾아줘')" rows="3"></textarea>
+                    <div class="input-buttons">
+                        <button id="voiceInputButton" class="voice-btn" title="음성 입력">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </button>
+                        <button id="sendButton" class="send-btn">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22,2 15,22 11,13 2,9"></polygon>
           </svg>
-        </span>
       </button>
     </div>
-    <label>
-      <input type="checkbox" id="ttsToggle" />
-      TTS Output (On/Off)
-    </label>
+                </div>
+                <div class="input-hints">
+                    <span class="hint">💡 팁: 질문의 의도를 명확히 하면 더 정확한 답변을 받을 수 있습니다.</span>
+                </div>
+            </div>
+        </div>
   </div>
 
   <script>
+        // 현재 시간 표시
+        document.getElementById('welcomeTime').textContent = new Date().toLocaleTimeString('ko-KR');
+        
+        // 변수 초기화
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const voiceInputButton = document.getElementById('voiceInputButton');
+        const chatMessages = document.getElementById('chatMessages');
+        const ttsEnabled = document.getElementById('ttsEnabled');
+        
+        // 음성 인식 관련 변수
+        let recognition = null;
+        let isRecording = false;
     let mediaRecorder;
     let chunks = [];
-    const chatHistory = document.getElementById('chatHistory');
-    const chatInput = document.getElementById('chatInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const micBtn = document.getElementById('micBtn');
-    const micIcon = document.getElementById('micIcon');
-    const ttsToggle = document.getElementById('ttsToggle');
-
-    // Function to add a message to the chat
-    function addMsg(type, text, meta, imageUrls, audioUrl) {
-      const wrap = document.createElement('div');
-      wrap.className = 'chat-msg ' + (type === 'user' ? 'user-msg' : 'bot-msg');
-      // wrap.innerHTML = `<div>${text}</div>`;
-      const textDiv = document.createElement('div');
-      textDiv.className = 'msg-text';
-      textDiv.textContent = text;   // Keep \n as is, CSS handles line breaks
-      wrap.appendChild(textDiv);
-
-      if (meta) {
-        // wrap.innerHTML += `<div class="meta">${meta}</div>`;
-        const metaDiv = document.createElement('div');
-        metaDiv.className = 'meta';
-        metaDiv.textContent = meta;  // Meta is also handled safely
-        wrap.appendChild(metaDiv);
-      }
-      // Display images if present
-      if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-        const imageDiv = document.createElement('div');
-        imageDiv.className = "image-container";
-        imageUrls.forEach(url => {
-          const img = document.createElement("img");
-          img.src = url;
-          imageDiv.appendChild(img);
-        });
-        wrap.appendChild(imageDiv);
-      }
-      // Play audio if present
-      if (audioUrl) {
-        const audio = document.createElement('audio');
-        audio.src = audioUrl;
-        audio.controls = true;
-        audio.style.marginTop = "5px";
-        wrap.appendChild(audio);
-        if (ttsToggle.checked) audio.play();
-      }
-      chatHistory.appendChild(wrap);
-      chatHistory.scrollTop = chatHistory.scrollHeight;
-    }
-
-    // Send text question
-    async function sendTextQuestion() {
-      const question = chatInput.value.trim();
-      if (!question) return;
-      addMsg('user', question, null);
-      chatInput.value = "";
-
-      addMsg('bot', '⏳ Generating answer...', null);
-
-      const resp = await fetch("/ask-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, return_audio: ttsToggle.checked })
-      });
-      const result = await resp.json();
-
-      // Remove previous answer (loading)
-      let loadingNodes = chatHistory.querySelectorAll('.bot-msg');
-      if (loadingNodes.length) {
-        let last = loadingNodes[loadingNodes.length - 1];
-        if (last && last.textContent.includes('⏳ Generating answer')) last.remove();
-      }
-
-      addMsg(
-        'bot',
-        result.rag_answer || "No response",
-        (result.opc_command ? `OPC: ${result.opc_command}, Execution result: ${result.opc_executed ? "Success" : "Failure"}` : null),
-        result.image_urls,
-        result.download_url
-      );
-    }
-
-    // Handle Enter key
-    chatInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        sendTextQuestion();
-      }
-    });
-    sendBtn.onclick = sendTextQuestion;
-
-    // Voice question (STT)
-    micBtn.onclick = async () => {
-      try {
-        micBtn.disabled = true;
-        // Start mic recording: change icon color/animation
-        micIcon.classList.add("mic-recording");
-        micIcon.querySelector('.mic-svg').setAttribute('fill', '#e44857');
-
-        addMsg('user', '🎙️ Recording started...', null);
+        
+        // 음성 인식 초기화
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'ko-KR';
+                
+                recognition.onstart = function() {
+                    isRecording = true;
+                    voiceInputButton.classList.add('recording');
+                    voiceInputButton.title = '음성 인식 중... (클릭하여 중지)';
+                };
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    messageInput.value = transcript;
+                    messageInput.focus();
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('음성 인식 오류:', event.error);
+                    addMessage('assistant', '음성 인식 중 오류가 발생했습니다. 다시 시도해주세요.');
+                };
+                
+                recognition.onend = function() {
+                    isRecording = false;
+                    voiceInputButton.classList.remove('recording');
+                    voiceInputButton.title = '음성 입력';
+                };
+            } else {
+                voiceInputButton.style.display = 'none';
+                console.warn('이 브라우저는 음성 인식을 지원하지 않습니다.');
+            }
+        }
+        
+        // 음성 입력 버튼 이벤트 (MediaRecorder 사용)
+        voiceInputButton.addEventListener('click', async function() {
+            if (isRecording) {
+                // 녹음 중지
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+                return;
+            }
+            
+            try {
+                voiceInputButton.classList.add('recording');
+                voiceInputButton.title = '녹음 중... (클릭하여 중지)';
+                
+                addMessage('user', '🎙️ 녹음 중...', null);
+                
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         chunks = [];
@@ -135,46 +150,241 @@
         mediaRecorder.ondataavailable = e => chunks.push(e.data);
 
         mediaRecorder.onstop = async () => {
-          addMsg('user', '⏳ Recognizing speech...', null);
-
-          // Restore mic icon
-          micIcon.classList.remove("mic-recording");
-          micIcon.querySelector('.mic-svg').setAttribute('fill', '#888');
-          micBtn.disabled = false;
+                    addMessage('user', '⏳ 음성을 인식하고 있습니다...', null);
+                    
+                    // 버튼 상태 복원
+                    voiceInputButton.classList.remove('recording');
+                    voiceInputButton.title = '음성 입력';
 
           const blob = new Blob(chunks, { type: 'audio/webm' });
           const formData = new FormData();
           formData.append("file", blob, "recorded.webm");
-          formData.append("return_audio", ttsToggle.checked.toString());
+                    formData.append("return_audio", ttsEnabled.checked.toString());
 
-          // (1) First, only get STT and display the result in chatInput
+                    try {
           const response = await fetch("/ask-audio-tts", {
             method: "POST",
             body: formData
           });
           const result = await response.json();
 
-          if (result.stt_text) {
-            chatInput.value = result.stt_text;
-            chatInput.focus();
-            addMsg('bot', `📝 Check/modify the recognized question and send.`, null);
+                        // 로딩 메시지 제거
+                        removeLastMessage();
+                        
+                        if (result.rag_answer) {
+                            addMessage('assistant', result.rag_answer, null, result.image_urls, result.download_url);
           } else {
-            addMsg('bot', "Speech recognition failed!", null);
+                            addMessage('assistant', '음성 인식에 실패했습니다. 다시 시도해주세요.', null);
+                        }
+                    } catch (error) {
+                        console.error('음성 처리 오류:', error);
+                        removeLastMessage();
+                        addMessage('assistant', '음성 처리 중 오류가 발생했습니다.', null);
           }
         };
 
         mediaRecorder.start();
         setTimeout(() => {
-          if (mediaRecorder.state === "recording") mediaRecorder.stop();
-        }, 9000); // 9 seconds recording limit
+                    if (mediaRecorder.state === "recording") {
+                        mediaRecorder.stop();
+                    }
+                }, 9000); // 9초 녹음 제한
 
       } catch (err) {
-        micIcon.classList.remove("mic-recording");
-        micIcon.querySelector('.mic-svg').setAttribute('fill', '#888');
-        addMsg('bot', '⚠️ Mic access failed: ' + err, null);
-        micBtn.disabled = false;
-      }
-    };
+                console.error('마이크 접근 오류:', err);
+                voiceInputButton.classList.remove('recording');
+                voiceInputButton.title = '음성 입력';
+                addMessage('assistant', '⚠️ 마이크 접근에 실패했습니다: ' + err.message, null);
+            }
+        });
+        
+        // 메시지 전송
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            // 사용자 메시지 추가
+            addMessage('user', message);
+            messageInput.value = '';
+            
+            // 로딩 메시지 추가
+            const loadingId = addLoadingMessage();
+            
+            try {
+                const response = await fetch("/ask-text", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        question: message,
+                        return_audio: ttsEnabled.checked
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // 로딩 메시지 제거
+                removeLoadingMessage(loadingId);
+                
+                // 응답 표시
+                addMessage('assistant', data.rag_answer || "응답을 생성할 수 없습니다.", null, data.image_urls, data.download_url);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                removeLoadingMessage(loadingId);
+                addMessage('assistant', '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.');
+            }
+        }
+        
+        function addMessage(sender, content, meta = null, imageUrls = null, audioUrl = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const timestamp = new Date().toLocaleTimeString('ko-KR');
+            const senderName = sender === 'user' ? '사용자' : 'AI 어시스턴트';
+            
+            // 음성 재생 버튼 추가 (AI 응답이고 오디오 URL이 있을 때)
+            const audioButton = (sender === 'assistant' && audioUrl) ? 
+                `<button class="audio-play-btn" onclick="playAudio('${audioUrl}')" title="음성 재생">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5,3 19,12 5,21"></polygon>
+                    </svg>
+                </button>` : '';
+            
+            let messageContent = content;
+            
+            // 이미지 표시
+            if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+                messageContent += `
+                    <div class="images-section">
+                        <h4>관련 이미지:</h4>
+                        <div class="image-gallery">
+                            ${imageUrls.map(imageUrl => `
+                                <div class="image-item">
+                                    <img src="${imageUrl}" alt="관련 이미지" class="response-image" onclick="openImageModal('${imageUrl}')">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="sender">${senderName}</span>
+                        <span class="timestamp">${timestamp}</span>
+                        ${audioButton}
+                    </div>
+                    <div class="message-text">${messageContent}</div>
+                    ${meta ? `<div class="meta">${meta}</div>` : ''}
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function addLoadingMessage() {
+            const loadingId = 'loading-' + Date.now();
+            const messageDiv = document.createElement('div');
+            messageDiv.id = loadingId;
+            messageDiv.className = 'message assistant loading';
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="sender">AI 어시스턴트</span>
+                        <span class="timestamp">${new Date().toLocaleTimeString('ko-KR')}</span>
+                    </div>
+                    <div class="message-text">
+                        <div class="loading-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <span class="loading-text">답변을 생성하고 있습니다...</span>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return loadingId;
+        }
+        
+        function removeLoadingMessage(loadingId) {
+            const loadingElement = document.getElementById(loadingId);
+            if (loadingElement) {
+                loadingElement.remove();
+            }
+        }
+        
+        function removeLastMessage() {
+            const messages = chatMessages.querySelectorAll('.message');
+            if (messages.length > 0) {
+                messages[messages.length - 1].remove();
+            }
+        }
+        
+        // 음성 재생 함수
+        function playAudio(audioUrl) {
+            const audio = new Audio(audioUrl);
+            audio.play().catch(error => {
+                console.error('음성 재생 오류:', error);
+                addMessage('assistant', '음성 재생 중 오류가 발생했습니다.');
+            });
+        }
+        
+        // 이미지 모달 열기 함수
+        function openImageModal(imageUrl) {
+            // 모달이 이미 있으면 제거
+            const existingModal = document.getElementById('imageModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // 모달 생성
+            const modal = document.createElement('div');
+            modal.id = 'imageModal';
+            modal.className = 'image-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay" onclick="closeImageModal()"></div>
+                <div class="modal-content">
+                    <button class="modal-close" onclick="closeImageModal()">&times;</button>
+                    <img src="${imageUrl}" alt="확대 이미지" class="modal-image">
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // ESC 키로 모달 닫기
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeImageModal();
+                }
+            });
+        }
+        
+        // 이미지 모달 닫기 함수
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // 음성 인식 초기화 실행
+        initSpeechRecognition();
   </script>
 </body>
 </html>

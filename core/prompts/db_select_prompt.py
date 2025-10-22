@@ -1,6 +1,6 @@
 from langchain_core.prompts import PromptTemplate
 
-prompt = PromptTemplate.from_template(
+db_select_prompt = PromptTemplate.from_template(
     """You are a classification assistant that determines which type of document best matches the user's question.
 
 There are two types of documents:
