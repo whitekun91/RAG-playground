@@ -17,17 +17,17 @@ RERANKER_MODEL_PATH = os.getenv("RERANKER_MODEL_PATH", "../models/embeddings/bge
 STT_MODEL_PATH = os.getenv('STT_MODEL_PATH', '../models/stt_models/whisper-large-v3-turbo')
 OPENAI_STT_MODEL = os.getenv("OPENAI_STT_MODEL", "gpt-4o-mini-transcribe")
 
-# 로컬 / OpenAPI 선택
+# Provider Selection (local / openai)
 CHAT_PROVIDER_DEFAULT = os.getenv("CHAT_PROVIDER", "local").lower()  # local / openai
 STT_PROVIDER_DEFAULT = os.getenv("STT_PROVIDER", "local").lower()  # local / openai
 TTS_PROVIDER_DEFAULT = os.getenv("TTS_PROVIDER", "local").lower()  # local / openai
 
-# OPenAI API 파라미터
+# OpenAI API Parameters
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1")
 
-# 로컬 LLM 혹은 OpenAI API 파라미터
+# Local LLM or OpenAI API Parameters
 VLLM_BASE_URL = os.getenv("VLLM_BASE_URL", "http://localhost:8000")
 VLLM_API_KEY = os.getenv("VLLM_API_KEY", "sk-samples")
 VLLM_MODEL = os.getenv("VLLM_MODEL", "gemma-3-12b-it")

@@ -6,23 +6,23 @@ from setting import (CHAT_PROVIDER_DEFAULT, OPENAI_API_KEY, OPENAI_MODEL,
                                                             DEFAULT_MAX_TOKENS, DEFAULT_TOP_P,
                                                             DEFAULT_STOP, DEFAULT_TIMEOUT)
 
-_client = OpenAI(  # 필요하면 base_url 커스터마이즈 가능
+_client = OpenAI(  # Customize base_url if needed
     api_key=OPENAI_API_KEY,
 )
 
 def call_llm(prompt: str, provider: str | None = None) -> str:
     """
-    하나의 함수로 OpenAI API 또는 로컬 vLLM 서버 호출.
-    provider 인자를 생략하면 .env의 PROVIDER 설정값을 따름.
+    Call OpenAI API or local vLLM server with a single function.
+    If provider argument is omitted, follows PROVIDER setting in .env.
     """
     selected_provider = (provider or CHAT_PROVIDER_DEFAULT).lower()
 
     # ── OpenAI ─────────────────────────────────────
     if selected_provider == "openai":
         if not OPENAI_API_KEY:
-            raise RuntimeError("OPENAI_API_KEY가 설정되어 있지 않습니다.")
+            raise RuntimeError("OPENAI_API_KEY is not configured.")
 
-        # system/user 메시지 구성 (system_input은 선택)
+        # Compose system/user messages (system_input is optional)
         system_input = "You are a helpful assistant."
         messages = [
             {"role": "system", "content": system_input},
@@ -31,7 +31,7 @@ def call_llm(prompt: str, provider: str | None = None) -> str:
 
         try:
             resp = _client.chat.completions.create(
-                model=OPENAI_MODEL,  # 예: "gpt-5-chat"
+                model=OPENAI_MODEL,  # e.g., "gpt-4o-mini"
                 messages=messages,
                 temperature=DEFAULT_TEMPERATURE,
                 max_tokens=DEFAULT_MAX_TOKENS,
@@ -39,10 +39,10 @@ def call_llm(prompt: str, provider: str | None = None) -> str:
             )
             return resp.choices[0].message.content.strip()
         except Exception as e:
-            # 체인 상위로 에러를 올리면 재시도 핸들러에서 잡기 쉬움
+            # Raise error to upper chain for retry handler
             raise RuntimeError(f"OpenAI chat.completions error: {e}") from e
 
-    # ── 로컬 vLLM ─────────────────────────────────────
+    # ── Local vLLM ─────────────────────────────────────
     elif selected_provider == "local":
         headers = {"Content-Type": "application/json"}
         if VLLM_API_KEY:
@@ -65,4 +65,4 @@ def call_llm(prompt: str, provider: str | None = None) -> str:
         return res.json()["choices"][0]["text"].strip()
 
     else:
-        raise ValueError(f"지원되지 않는 PROVIDER 값: {selected_provider}")
+        raise ValueError(f"Unsupported PROVIDER value: {selected_provider}")

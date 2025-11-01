@@ -14,11 +14,11 @@ def load_stt_model(device, torch_dtype, provider: str | None = None):
 
     if selected_provider == "openai":
         if not OPENAI_API_KEY:
-            raise RuntimeError("OPENAI_API_KEY가 설정되어 있지 않습니다. (STT_PROVIDER=openai)")
-        model = OPENAI_STT_MODEL or "gpt-4o-mini-transcribe"  # whisper-1 / gpt-4o-transcribe도 가능
+            raise RuntimeError("OPENAI_API_KEY is not configured (STT_PROVIDER=openai)")
+        model = OPENAI_STT_MODEL or "gpt-4o-mini-transcribe"  # whisper-1 / gpt-4o-transcribe also available
 
         def stt(audio: Union[str, bytes, io.BufferedIOBase]) -> Dict[str, Any]:
-            # audio: 경로/bytes/파일객체 모두 지원
+            # audio: supports path/bytes/file object
             if isinstance(audio, (bytes, bytearray)):
                 f = io.BytesIO(audio);
                 f.name = "audio.webm";
@@ -43,7 +43,7 @@ def load_stt_model(device, torch_dtype, provider: str | None = None):
 
         return stt
 
-    # ── Local (HF Whisper 등) ──
+    # ── Local (HF Whisper, etc.) ──
     stt_model = AutoModelForSpeechSeq2Seq.from_pretrained(
         STT_MODEL_PATH, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
     ).to(device)

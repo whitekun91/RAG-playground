@@ -1,38 +1,43 @@
 """
-RAG Composer - 문서들을 RAG 입력으로 구성하는 모듈
+RAG Composer - Compose documents into RAG input format
 """
 from typing import List, Dict, Any
 from langchain_core.documents import Document
 
 
 class RAGComposer:
-    """RAG 입력을 구성하는 클래스"""
+    """Class for composing RAG inputs"""
     
     def __init__(self):
         pass
     
     def compose_inputs(self, documents: List[Document]) -> Dict[str, Any]:
         """
-        문서들을 RAG 입력으로 구성
+        Compose documents into RAG input format
         
         Args:
-            documents: 검색된 문서들
+            documents: Retrieved documents
             
         Returns:
-            RAG 입력 딕셔너리
+            RAG input dictionary
         """
         if not documents:
             return {"context": "", "sources": []}
         
-        # 문서 내용을 결합
+        # Combine document contents
         context_parts = []
         sources = []
         
         for doc in documents:
-            if hasattr(doc, 'page_content') and doc.page_content:
-                context_parts.append(doc.page_content)
+            # Check if it's a Document object
+            if hasattr(doc, 'page_content'):
+                if doc.page_content:
+                    context_parts.append(doc.page_content)
+            elif isinstance(doc, str):
+                # Use string as-is
+                context_parts.append(doc)
             
-            # 소스 정보 수집
+            # Collect source information
             if hasattr(doc, 'metadata') and doc.metadata:
                 source = doc.metadata.get('source', 'Unknown')
                 if source not in sources:
@@ -42,5 +47,5 @@ class RAGComposer:
         
         return {
             "context": context,
-            "sources": sources
+            "sources": sources if sources else []
         }

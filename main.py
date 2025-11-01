@@ -71,7 +71,7 @@ prompt = origin_prompt
 db_select_prompt = db_select_prompt
 image_detect_prompt = image_detect_prompt
 
-# ──────────────── LLM 호출 및 체인 구성 ──────────────── #
+# ──────────────── LLM Call and Chain Setup ──────────────── #
 # image_request_chain = create_image_chain(image_detect_prompt, call_vllm)
 
 # ────────────────────── Load Components ────────────────────── #
@@ -130,7 +130,7 @@ pipeline = PipelineService(
 def handle_query(question_text: str, return_audio: bool = False):
     return pipeline.ask_text(question_text, return_audio=return_audio)
 
-# ────────────────────── FastAPI 라우팅 ────────────────────── #
+# ────────────────────── FastAPI Routing ────────────────────── #
 @app.get("/", response_class=HTMLResponse)
 async def serve_ui():
     html_path = Path("static/index.html")
@@ -138,7 +138,7 @@ async def serve_ui():
 
 @app.get("/favicon.ico")
 async def favicon():
-    # favicon.ico 요청에 대해 204 No Content 응답
+    # Return 204 No Content for favicon.ico requests
     return Response(status_code=204)
 
 @app.get("/download/{filename}")
