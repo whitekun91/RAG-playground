@@ -1,17 +1,24 @@
 import chromadb
 from chromadb.config import Settings
+from langchain_chroma import Chroma
 
 class VectorStoreService:
     def __init__(self):
         self.client = chromadb.PersistentClient(
             path="./documents/vector_db",
-            settings=Settings(anonymized_telemetry=False)
+            settings=Settings(
+                anonymized_telemetry=False,
+                allow_reset=True
+            )
         )
     
     def create(self):
         """Create and return vector store"""
-        collection = self.client.get_or_create_collection(
-            name="rag_documents",
-            metadata={"hnsw:space": "cosine"}
+        # Use LangChain ChromaDB wrapper without embedding function
+        vector_store = Chroma(
+            client=self.client,
+            collection_name="rag_documents",
+            collection_metadata={"hnsw:space": "cosine"},
+            embedding_function=None  # Disable embedding function
         )
-        return collection
+        return vector_store

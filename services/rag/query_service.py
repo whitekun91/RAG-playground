@@ -21,25 +21,35 @@ class QueryService:
 
     def retrieve_and_rerank(self, question_text: str):
         retriever = self.vector_store.as_retriever()
-        return self.reranker.rerank(retriever, question_text)
+        documents = retriever.invoke(question_text)  # Use invoke instead of get_relevant_documents
+        return self.reranker.rerank(question_text, documents)
 
     def generate_answer(self, question_text: str, reranked_docs) -> str:
         inputs = self._composer.compose_inputs(reranked_docs)
-        rag_chain = (
-            inputs
-            | self.prompt
-            | RunnableLambda(lambda x: self.call_llm(x.to_string()))
-            | StrOutputParser()
-        )
-        return rag_chain.invoke(question_text)
+        
+        # Construct RAG input
+        rag_input = {
+            "question": question_text,
+            "context": inputs.get("context", ""),
+            "sources": "\n".join(inputs.get("sources", []))
+        }
+        
+        # Format prompt with input
+        formatted_prompt = self.prompt.format(**rag_input)
+        
+        # Call LLM
+        response = self.call_llm(formatted_prompt)
+        return response
 
     def collect_image_urls(self, reranked_docs) -> List[str]:
         image_refs: List[str] = []
         for doc in reranked_docs:
             try:
                 import json
-                img_list = json.loads(doc.metadata.get("image_refs", "[]"))
-                image_refs.extend(img_list)
+                # Check if it's a Document object
+                if hasattr(doc, 'metadata') and doc.metadata:
+                    img_list = json.loads(doc.metadata.get("image_refs", "[]"))
+                    image_refs.extend(img_list)
             except Exception:
                 continue
         return self._image_links.build(image_refs)
