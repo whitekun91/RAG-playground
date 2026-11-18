@@ -83,7 +83,7 @@ langchain-community==0.3.31
 langchain-core==0.3.79
 langchain-huggingface==0.3.1
 langchain-text-splitters==0.3.11
-langsmith==0.4.34
+langsmith==0.6.3
 lark==1.2.2
 llguidance==0.7.30
 llvmlite==0.44.0
