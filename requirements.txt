@@ -41,7 +41,7 @@ fastapi==0.119.0
 fastapi-cli==0.0.13
 fastapi-cloud-cli==0.3.1
 fastrlock==0.8.3
-filelock==3.20.0
+filelock==3.20.3
 fitz==0.0.1.dev2
 flatbuffers==25.9.23
 frontend==0.0.3
